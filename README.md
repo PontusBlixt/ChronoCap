@@ -7,6 +7,8 @@ into a single, strictly time-ordered output fileset. Similar in spirit to
 sized to your preference, with each file's name carrying the timestamp of
 its first packet for easy chronological lookup.
 
+Created by Pontus Blixt. Licensed under Apache 2.0.
+
 ## Requirements
 
 ChronoCap is distributed as a standalone executable (built with PyInstaller)
