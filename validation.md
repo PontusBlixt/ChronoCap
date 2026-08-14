@@ -153,6 +153,39 @@ new environment, a new capture source, or after any change to ChronoCap
 itself; skip it for routine day-to-day runs once you trust the pipeline
 is behaving correctly in your environment.
 
+## Progress visibility during verification
+
+A `-verify` pass on a large output fileset can legitimately run for a
+long time with no growing file to watch (the merge is already done —
+verification only reads), which is easy to mistake for a hang. This bit
+us once during real production testing: ChronoCap had finished merging
+and was silently deep into verification, with zero console output, and
+looked indistinguishable from an actual stall.
+
+Since v1.5, two things fix this:
+
+- A `Merge complete (N packets). Starting verification (-verify)...`
+  message prints the instant the merge loop finishes and verification
+  begins, so the phase transition is never silent.
+- The same background progress reporter used during the merge phase
+  (see the main README) stays active through verification too — because
+  `verify_output()`'s internal `PacketReader` shares the same
+  `ProgressTracker` instance passed in from `merge_captures()`, every
+  packet it reads back updates the same heartbeat/stall-detection state.
+  A 60-second heartbeat and a 5-minute stall warning both work
+  identically whether the run is currently merging or verifying.
+
+**Important:** the stall threshold is measured as time since the *last
+individual packet* was read, not total phase duration. A `-verify` pass
+that takes three hours on a huge capture but keeps reading packets
+steadily will never trigger a false stall warning — only a genuine
+multi-minute gap between individual packet reads does. This was verified
+directly: a simulated run that took several seconds total but updated
+progress every 100ms produced zero warnings, while a run with the same
+total elapsed time but no per-packet updates at all correctly triggered
+one. The threshold is about read-to-read latency, not wall-clock
+duration of the phase as a whole.
+
 ## Exit codes
 
 | Code | Meaning |
